@@ -34,7 +34,7 @@ function getLaborSingle(part_item, baseLabor, config) {
   let perItemLabor = Number(baseLabor) || 0;
   const adv = config.advanced;
 
-  // Try to find product container/title
+
   let container =
     part_item.closest("li.item, .product-item, .item, .product-view, .product-essential");
 
@@ -50,7 +50,7 @@ function getLaborSingle(part_item, baseLabor, config) {
 
   const name = heading.textContent.toLowerCase();
 
-  // Highest priority: soldering
+
   if (name.includes("soldering required")) {
     perItemLabor = adv.soldering;
   } else if (name.includes("charging") && name.includes("port")) {

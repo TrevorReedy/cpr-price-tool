@@ -4,7 +4,7 @@
   "name": "New CPR7H Price Tool",
   "version": "1.0",
   "action": {
-    "default_popup": "src/popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_title": "Labor Settings"
   },
   "permissions": ["storage"],
@@ -29,7 +29,7 @@
 } ],
 
 "options_ui": {
-  "page": "src/options.html",
+  "page": "src/popup/options.html",
   "open_in_tab": true
 },
 

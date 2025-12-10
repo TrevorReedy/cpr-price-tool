@@ -18,7 +18,7 @@ async function main() {
   if (blacklist.some((word) => url.includes(word))) return;
 
   const tablets  = ["ipad", "surface", "galaxy-tab", "samsung/tab"];
-  const consoles = ["game-console", "sony", "xbox", "nintendo", "macbook"];
+  const consoles = ["game-console", "sony", "xbox", "nintendo", "macbook", "imac"];
 
   const config = await loadConfig();
   const defs = config.defaults;
@@ -28,7 +28,11 @@ async function main() {
 
   if (tablets.some((word) => url.includes(word)))  baseLabor = defs.tablet;
   if (consoles.some((word) => url.includes(word))) baseLabor = defs.console; // or defs.computer for Macs
-
+  console.log("URL:", url);
+console.log("Config loaded:", config);
+console.log("Base labor set to:", baseLabor);
+console.log("Is it a console URL?", consoles.some((word) => url.includes(word)));
+console.log("Is it a computer URL?", url.includes("macbook") || url.includes("imac"));
   // Initial pass
   addPrices(baseLabor, config);
 
