@@ -44,18 +44,30 @@ function toNumberOrNull(input) {
 
 function savePopup() {
   const cfg = {
-    defaults: {
-      phone:    toNumberOrNull(document.getElementById("phone")),
-      tablet:   toNumberOrNull(document.getElementById("tablet")),
-      computer: toNumberOrNull(document.getElementById("computer")),
-      console:  toNumberOrNull(document.getElementById("console")),
-    },
-    advanced: {
-      backHousing: toNumberOrNull(document.getElementById("backHousing")),
-      soldering:   toNumberOrNull(document.getElementById("soldering")),
-    },
+    defaults: {},
+    advanced: {},
   };
-
+  
+  // Only add defaults that have values
+  const phone = toNumberOrNull(document.getElementById("phone"));
+  const tablet = toNumberOrNull(document.getElementById("tablet"));
+  const computer = toNumberOrNull(document.getElementById("computer"));
+  const consoleInp = toNumberOrNull(document.getElementById("console"));
+  
+  if (phone !== null) cfg.defaults.phone = phone;
+  if (tablet !== null) cfg.defaults.tablet = tablet;
+  if (computer !== null) cfg.defaults.computer = computer;
+  if (consoleInp !== null) cfg.defaults.console = consoleInp;
+  
+  // Only add advanced that have values
+  const backHousing = toNumberOrNull(document.getElementById("backHousing"));
+  const soldering = toNumberOrNull(document.getElementById("soldering"));
+  const chargePort = toNumberOrNull(document.getElementById("chargeport"));
+  
+  if (backHousing !== null) cfg.advanced.backHousing = backHousing;
+  if (soldering !== null) cfg.advanced.soldering = soldering;
+  if (chargePort !== null) cfg.advanced.chargePort = chargePort;
+  
   chrome.storage.sync.set({ laborConfig: cfg }, () => {
     const status = document.getElementById("status");
     status.textContent = "Saved!";
