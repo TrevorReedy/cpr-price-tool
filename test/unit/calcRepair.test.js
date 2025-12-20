@@ -12,3 +12,5 @@ describe('calcRepair', () => {
     expect(calcRepair(200, 50)).toBeCloseTo(299.99, 2);
   });
 });
+
+

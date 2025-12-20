@@ -7,8 +7,10 @@ const DEFAULT_CONFIG = {
     console: 130,
   },
   advanced: {
-    chargePort: 100,
+    iphoneChargePort: 100,
     backHousing: 100,
     soldering: 130,
   },
 };
+
+module.exports = {DEFAULT_CONFIG}

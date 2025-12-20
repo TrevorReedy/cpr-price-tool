@@ -11,7 +11,7 @@ function loadPopup() {
 
     const backHousing = document.getElementById("backHousing");
     const soldering   = document.getElementById("soldering");
-    const chargePort   = document.getElementById("chargeport");
+    const iphoneChargePort   = document.getElementById("iphoneChargePort");
     
   
     phone.placeholder       = defs.defaults.phone;
@@ -22,7 +22,7 @@ function loadPopup() {
 
     backHousing.placeholder = defs.advanced.backHousing;
     soldering.placeholder   = defs.advanced.soldering;
-    chargePort.placeholder = defs.advanced.chargePort;
+    iphoneChargePort.placeholder = defs.advanced.iphoneChargePort;
 
     if (stored.defaults) {
       if (stored.defaults.phone != null)      phone.value      = stored.defaults.phone;
@@ -35,7 +35,7 @@ function loadPopup() {
     if (stored.advanced) {
       if (stored.advanced.backHousing != null) backHousing.value = stored.advanced.backHousing;
       if (stored.advanced.soldering != null)   soldering.value   = stored.advanced.soldering;
-      if (stored.advanced.chargePort != null)   chargePort.value   = stored.advanced.chargePort;
+      if (stored.advanced.iphoneChargePort != null)   iphoneChargePort.value   = stored.advanced.iphoneChargePort;
     }
   });
 }
@@ -67,11 +67,11 @@ function savePopup() {
   // Only add advanced that have values
   const backHousing = toNumberOrNull(document.getElementById("backHousing"));
   const soldering = toNumberOrNull(document.getElementById("soldering"));
-  const chargePort = toNumberOrNull(document.getElementById("chargeport"));
+  const iphoneChargePort = toNumberOrNull(document.getElementById("iphoneChargePort"));
   
   if (backHousing !== null) cfg.advanced.backHousing = backHousing;
   if (soldering !== null) cfg.advanced.soldering = soldering;
-  if (chargePort !== null) cfg.advanced.chargePort = chargePort;
+  if (iphoneChargePort !== null) cfg.advanced.iphoneChargePort = iphoneChargePort;
   
   chrome.storage.sync.set({ laborConfig: cfg }, () => {
     const status = document.getElementById("status");

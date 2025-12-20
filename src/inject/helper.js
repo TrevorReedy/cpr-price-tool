@@ -30,7 +30,7 @@
 // }
 
 // v2
-function getLaborSingle(part_item, baseLabor, config) {
+function getLaborSingle(part_item, baseLabor, config, url) {
   let perItemLabor = Number(baseLabor) || 0;
   const adv = config.advanced;
 
@@ -55,8 +55,8 @@ function getLaborSingle(part_item, baseLabor, config) {
   }
   else if (name.includes("soldering required")) {
     perItemLabor = adv.soldering;
-  } else if (name.includes("charging") && name.includes("port")) {
-  perItemLabor = adv.chargePort;
+  } else if (name.includes("charging") && name.includes("port") && url.includes("iphone")) {
+  perItemLabor = adv.iphoneChargePort;
   } else if (name.includes("back") && name.includes("housing")) {
     perItemLabor = adv.backHousing;
   }
@@ -71,7 +71,6 @@ function addPrices(baseLabor, config) {
   const elements = document.getElementsByClassName("price");
 
   for (const part_item of elements) {
-    // Skip cart / checkout
     if (
       part_item.closest("#np-cart") ||
       part_item.closest(".np-cart") ||
@@ -85,7 +84,7 @@ function addPrices(baseLabor, config) {
     // Skip already-processed nodes
     if (part_item.dataset.cprCalcApplied === "1") continue;
 
-    const perItemLabor = getLaborSingle(part_item, baseLabor, config);
+    const perItemLabor = getLaborSingle(part_item, baseLabor, config, url);
     addHTML(perItemLabor, part_item, url);
     part_item.dataset.cprCalcApplied = "1";
   }
@@ -93,10 +92,10 @@ function addPrices(baseLabor, config) {
 
 
 
-
+//tested
 function calcRepair(partcost,labor){
 	var mult;
-	if(partcost <= 9.99){
+	if(partcost > 0 && partcost <= 9.99){
 		mult = 5;
 	}else if(partcost >=10  &  partcost <= 24.99) {
 		mult = 2.5;
@@ -114,4 +113,7 @@ function calcRepair(partcost,labor){
 	return Math.round(rounded) - .01;
 }
 
-module.exports = { calcRepair };
+module.exports = {
+  calcRepair,
+  getLaborSingle
+};
