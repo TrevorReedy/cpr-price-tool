@@ -1,6 +1,3 @@
-/* ===========================================================
- * CPR – device notes only  (iFixit resolver DISABLED)
- * =========================================================== */
 (() => {
   /* ---- 1.  bail-out if we are on the login page ---------- */
   if (location.href.includes('account/login')) return;
@@ -23,6 +20,8 @@
       setTimeout(() => { obs.disconnect(); resolve(null); }, timeout);
     });
   }
+
+
 
   function slugifyKey(str) {
     return String(str || '')
@@ -138,12 +137,18 @@
     }
   }).observe(document, {subtree: true, childList: true});
 
-  /* -------------- expose for tests ------------------------- */
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { inject };
-}
+  // expose for tests
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { inject, waitForAny };
+  }
 
-})();const { inject } = require('../../src/inject/notes.js');   // export inject() for testing
+  // single bootstrap (only once)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inject);
+  } 
+  
+
+})();const { inject, waitForAny } = require('../../src/inject/notes.js');   // export inject() for testing
 
 beforeEach(() => document.body.innerHTML = '');
 

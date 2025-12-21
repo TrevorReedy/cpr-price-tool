@@ -147,10 +147,10 @@ function addHTML(labor, part_item, url) {
     const container = document.createElement('div');
     container.className = 'repair-container';
 
-    if (!url.includes('replacement-parts') && url.includes('cpr.parts')) {
-        const spacer = document.createElement('br');
-        container.appendChild(spacer);
-    }
+    // if (!url.includes('replacement-parts') && url.includes('cpr.parts')) {
+    //     const spacer = document.createElement('br');
+    //     container.appendChild(spacer);
+    // }
 
     container.appendChild(table);
 
@@ -159,7 +159,7 @@ function addHTML(labor, part_item, url) {
 }
 
 
-
+module.exports = { addHTML }
 
 
 main();

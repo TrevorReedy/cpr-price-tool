@@ -64,30 +64,71 @@ function getLaborSingle(part_item, baseLabor, config, url) {
   return perItemLabor;
 }
 
-function addPrices(baseLabor, config) {
-  const url = document.URL;
-  if (!(url.includes("sentrix") || url.includes("defenders") || url.includes("cpr"))) return;
 
-  const elements = document.getElementsByClassName("price");
+// v1
+// function addPrices(baseLabor, config) {
+//   const url = document.URL;
+//   if (!(url.includes("sentrix") || url.includes("defenders") || url.includes("cpr"))) return;
 
-  for (const part_item of elements) {
-    if (
-      part_item.closest("#np-cart") ||
-      part_item.closest(".np-cart") ||
-      part_item.closest(".cart") ||
-      part_item.closest(".minicart") ||
-      part_item.closest(".checkout")
-    ) {
-      continue;
-    }
+//   const elements = document.getElementsByClassName("price");
 
-    // Skip already-processed nodes
-    if (part_item.dataset.cprCalcApplied === "1") continue;
+//   for (const part_item of elements) {
+//     if (
+//       part_item.closest("#np-cart") ||
+//       part_item.closest(".np-cart") ||
+//       part_item.closest(".cart") ||
+//       part_item.closest(".minicart") ||
+//       part_item.closest(".checkout")
+//     ) {
+//       continue;
+//     }
 
-    const perItemLabor = getLaborSingle(part_item, baseLabor, config, url);
-    addHTML(perItemLabor, part_item, url);
-    part_item.dataset.cprCalcApplied = "1";
-  }
+//     // Skip already-processed nodes
+//     if (part_item.dataset.cprCalcApplied === "1") continue;
+
+//     const perItemLabor = getLaborSingle(part_item, baseLabor, config, url);
+//     addHTML(perItemLabor, part_item, url);
+//     part_item.dataset.cprCalcApplied = "1";
+//   }
+// }
+
+
+// v2
+function addPrices(rate, config) {
+  // 1. Batch DOM reads first
+  const products = document.querySelectorAll('.item');
+  const updates = [];
+  
+  products.forEach(product => {
+    // Collect data without DOM writes
+    const priceEl = product.querySelector('.price');
+    const nameEl = product.querySelector('.product-name');
+    updates.push({
+      element: product,
+      price: parseFloat(priceEl.textContent.replace('$', '')),
+      name: nameEl.textContent
+    });
+  });
+  
+  // 2. Perform calculations
+  const results = updates.map(data => {
+    // Perform all calculations
+    const laborCost = data.price * (rate / 100);
+    const total = data.price + laborCost;
+    return { element: data.element, total };
+  });
+  
+  // 3. Batch DOM writes
+  const fragment = document.createDocumentFragment();
+  results.forEach(result => {
+    const repairTable = document.createElement('div');
+    repairTable.className = 'repair-table';
+    repairTable.textContent = `$${result.total.toFixed(2)}`;
+    fragment.appendChild(repairTable);
+  });
+  
+  // 4. Single DOM insertion
+  document.body.appendChild(fragment);
 }
 
 
@@ -115,5 +156,6 @@ function calcRepair(partcost,labor){
 
 module.exports = {
   calcRepair,
-  getLaborSingle
+  getLaborSingle,
+  addPrices
 };
