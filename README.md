@@ -39,6 +39,7 @@ Includes **Clear** button.
 
 ### 3) Labor Rules (Device Type + Advanced Overrides)
 **FOUND BY CLICKING THE EXTENSION ICON**
+
 Labor is computed per product using:
 - **Device type detection** (phone/tablet/switch/computer/console)
 - Default labor per device type
