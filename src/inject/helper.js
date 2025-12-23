@@ -1,161 +1,226 @@
 /**
- * @author Riley Brust <brust.developer@gmail.com>
- * @version 0.1.0
- * @description Helper functions to add prices to the page.
- * @file helper.js
+ * helper.js - Creates repair tables and buttons
  */
 
+// ---------- Labor logic (defaults by device type) ----------
+function pickDeviceType(url, name) {
+  const u = String(url || "").toLowerCase();
+  const n = String(name || "").toLowerCase();
+  const hay = `${u} ${n}`;
 
-// v1
-// function addPrices(labor){
-//     var elements;
-//     //Loop for adding prices
-//     let url = document.URL;
-//     if(url.includes("sentrix") || url.includes("defenders") || url.includes("cpr"))    elements = document.getElementsByClassName("price");
-    
-//     for(const part_item of elements){   
-//         console.log(part_item)
-//         //Looping through each price element on the page.
-//         let parentclass = part_item.parentElement.className;
-//         if(parentclass == "old-price" || parentclass == "np-cart") continue; 
-//            //skip if the price is a sale item on MD.
+  // Tablet
+  if (
+    hay.includes("ipad") ||
+    hay.includes("tablet") ||
+    hay.includes("galaxy tab") ||
+    hay.includes("surface")
+  ) {
+    return "tablet";
+  }
 
-//         //Checking if the parent class is one that would contain parts or skipping if its another price. EX: the cart price.
-//         let parentClass4 = part_item.parentElement.parentElement.parentElement.parentElement;
-//         let parentClass3 = part_item.parentElement.parentElement.parentElement;
-    
-        
-//         addHTML(labor,part_item,url);
-//     }
-// }
+  // Switch
+  if (hay.includes("nintendo switch") || hay.includes("/switch") || hay.includes(" switch ")) {
+    return "switch";
+  }
 
-// v2
-function getLaborSingle(part_item, baseLabor, config, url) {
-  let perItemLabor = Number(baseLabor) || 0;
-  const adv = config.advanced;
+  // Computer
+  if (
+    hay.includes("macbook") ||
+    hay.includes("imac") ||
+    hay.includes("laptop") ||
+    hay.includes("notebook") ||
+    hay.includes("chromebook") ||
+    hay.includes("pc ") ||
+    hay.includes("computer")
+  ) {
+    return "computer";
+  }
 
+  // Console
+  if (
+    hay.includes("playstation") ||
+    hay.includes("ps5") ||
+    hay.includes("ps4") ||
+    hay.includes("xbox") ||
+    hay.includes("series x") ||
+    hay.includes("series s") ||
+    hay.includes("nintendo wii") ||
+    hay.includes("console")
+  ) {
+    return "console";
+  }
 
-  let container =
-    part_item.closest("li.item, .product-item, .item, .product-view, .product-essential");
+  // Default
+  return "phone";
+}
 
+function getHeadingTextNear(part_item) {
+  let container = part_item.closest("li.item, .product-item, .item, .product-view, .product-essential");
   let heading = container
     ? container.querySelector("h2.product-name, h1, .product-name, .page-title")
     : null;
 
-  if (!heading) {
-    heading = document.querySelector("h1, h2.product-name, .product-name, .page-title");
-  }
+  if (!heading) heading = document.querySelector("h1, h2.product-name, .product-name, .page-title");
+  return heading ? heading.textContent : "";
+}
 
-  if (!heading) return perItemLabor;
+function getLaborSingle(part_item, baseLabor, config, url) {
+  const defaults = (config && config.defaults) ? config.defaults : {};
+  const advanced = (config && config.advanced) ? config.advanced : {};
 
-  const name = heading.textContent.toLowerCase();
+  const headingText = getHeadingTextNear(part_item);
+  const name = String(headingText || "").toLowerCase();
+  const deviceType = pickDeviceType(url, name);
 
+  const fallback = Number(baseLabor) || 0;
+  const defaultForType = Number(defaults[deviceType]);
+
+  // Baseline labor comes from config.defaults (LaborConfig source of truth)
+  let perItemLabor =
+    (Number.isFinite(defaultForType) && defaultForType > 0)
+      ? defaultForType
+      : fallback;
+
+  // Advanced overrides (kept)
   if (name.includes("casper")) {
     perItemLabor = 0;
-  }
-  else if (name.includes("soldering required")) {
-    perItemLabor = adv.soldering;
-  } else if (name.includes("charging") && name.includes("port") && url.includes("iphone")) {
-  perItemLabor = adv.iphoneChargePort;
-  } else if (name.includes("back") && name.includes("housing")) {
-    perItemLabor = adv.backHousing;
+  } else if (name.includes("soldering required")) {
+    const adv = Number(advanced.soldering);
+    if (Number.isFinite(adv) && adv > 0) perItemLabor = adv;
+  } else if (
+    name.includes("charging") &&
+    name.includes("port") &&
+    String(url || "").toLowerCase().includes("iphone")
+  ) {
+    const adv = Number(advanced.iphoneChargePort);
+    if (Number.isFinite(adv) && adv > 0) perItemLabor = adv;
+  } else if (name.includes("back") && name.includes("housing") 
+    || name.includes("mid-frame") &&
+    String(url || "").toLowerCase().includes("iphone")
+  ) {
+    const adv = Number(advanced.backHousing);
+    if (Number.isFinite(adv) && adv > 0) perItemLabor = adv;
   }
 
   return perItemLabor;
 }
 
+// ---------- Price calc (unchanged) ----------
+function calcRepair(partcost, labor) {
+  var mult;
+  if (partcost > 0 && partcost <= 9.99) mult = 5;
+  else if (partcost >= 10 & partcost <= 24.99) mult = 2.5;
+  else if (partcost >= 25 & partcost <= 49.99) mult = 2.25;
+  else if (partcost >= 50 & partcost <= 99.99) mult = 2.00;
+  else if (partcost >= 100 & partcost <= 199.99) mult = 1.5;
+  else if (partcost >= 200) mult = 1.25;
+  else mult = 1;
 
-// v1
-// function addPrices(baseLabor, config) {
-//   const url = document.URL;
-//   if (!(url.includes("sentrix") || url.includes("defenders") || url.includes("cpr"))) return;
+  var price = (partcost * mult) + labor;
+  var rounded = Math.ceil(price / 10) * 10;
+  return Math.round(rounded) - .01;
+}
 
-//   const elements = document.getElementsByClassName("price");
+function parseMoney(text) {
+  const n = Number(String(text || "").replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
 
-//   for (const part_item of elements) {
-//     if (
-//       part_item.closest("#np-cart") ||
-//       part_item.closest(".np-cart") ||
-//       part_item.closest(".cart") ||
-//       part_item.closest(".minicart") ||
-//       part_item.closest(".checkout")
-//     ) {
-//       continue;
-//     }
+function guessNameNear(priceEl) {
+  const host =
+    priceEl.closest("li.item") ||
+    priceEl.closest(".product-item") ||
+    priceEl.closest(".item") ||
+    priceEl.closest(".product") ||
+    priceEl.closest("article") ||
+    priceEl.closest("li") ||
+    priceEl.closest("div");
 
-//     // Skip already-processed nodes
-//     if (part_item.dataset.cprCalcApplied === "1") continue;
+  return (
+    host?.querySelector("[data-name]")?.textContent?.trim() ||
+    host?.querySelector("h2,h3,h4")?.textContent?.trim() ||
+    host?.querySelector("a")?.textContent?.trim() ||
+    document.querySelector("h1")?.textContent?.trim() ||
+    "Repair item"
+  );
+}
 
-//     const perItemLabor = getLaborSingle(part_item, baseLabor, config, url);
-//     addHTML(perItemLabor, part_item, url);
-//     part_item.dataset.cprCalcApplied = "1";
-//   }
-// }
+function stableId(priceEl) {
+  const txt = (priceEl.textContent || "").trim();
+  return `${location.href}::${txt}::${priceEl.offsetTop}`;
+}
 
-
-// v2
+// ---------- Main DOM injection ----------
 function addPrices(rate, config) {
-  // 1. Batch DOM reads first
-  const products = document.querySelectorAll('.item');
-  const updates = [];
-  
-  products.forEach(product => {
-    // Collect data without DOM writes
-    const priceEl = product.querySelector('.price');
-    const nameEl = product.querySelector('.product-name');
-    updates.push({
-      element: product,
-      price: parseFloat(priceEl.textContent.replace('$', '')),
-      name: nameEl.textContent
-    });
-  });
-  
-  // 2. Perform calculations
-  const results = updates.map(data => {
-    // Perform all calculations
-    const laborCost = data.price * (rate / 100);
-    const total = data.price + laborCost;
-    return { element: data.element, total };
-  });
-  
-  // 3. Batch DOM writes
-  const fragment = document.createDocumentFragment();
-  results.forEach(result => {
-    const repairTable = document.createElement('div');
-    repairTable.className = 'repair-table';
-    repairTable.textContent = `$${result.total.toFixed(2)}`;
-    fragment.appendChild(repairTable);
-  });
-  
-  // 4. Single DOM insertion
-  document.body.appendChild(fragment);
+  const url = document.URL;
+  if (!(url.includes("sentrix") || url.includes("defenders") || url.includes("cpr"))) return;
+
+  const allPriceElements = document.querySelectorAll('.price:not([data-cpr-calc-applied="1"])');
+  if (!allPriceElements.length) return;
+
+  for (const priceEl of allPriceElements) {
+    // avoid cart/checkout areas
+    if (
+      priceEl.closest("#np-cart") ||
+      priceEl.closest(".np-cart") ||
+      priceEl.closest(".cart") ||
+      priceEl.closest(".minicart") ||
+      priceEl.closest(".checkout")
+    ) {
+      continue;
+    }
+
+    const partCost = parseMoney(priceEl.textContent || "");
+    if (!partCost) continue;
+
+    const labor = getLaborSingle(priceEl, rate, config, url);
+    const repair_price = calcRepair(partCost, labor);
+    const partPrice = Math.max(0, repair_price - Number(labor || 0));
+
+    const parent = priceEl.parentElement;
+    if (!parent) continue;
+
+    const container = document.createElement("div");
+    container.className = "repair-container";
+    container.innerHTML = `
+      <table class="repair-table">
+        <tbody>
+          <tr><td class="repair-table-label">Part Price:</td><td class="repair-table-value">$${partPrice.toFixed(2)}</td></tr>
+          <tr><td class="repair-table-label">Labor:</td><td class="repair-table-value">$${Number(labor).toFixed(2)}</td></tr>
+          <tr><td class="repair-table-label">Repair Price:</td><td class="repair-table-repair">$${Number(repair_price).toFixed(2)}</td></tr>
+        </tbody>
+      </table>
+    `;
+
+    // per-product button
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "rc-add-btn";
+    btn.textContent = "Add to cart";
+
+    btn.dataset.rcId = stableId(priceEl);
+    btn.dataset.rcName = guessNameNear(priceEl);
+    btn.dataset.rcPartPrice = String(partPrice.toFixed(2));
+    btn.dataset.rcLabor = String(Number(labor || 0).toFixed(2));
+
+    // Keep direct handler (works even if delegation changes later)
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      if (window.RepairCart && typeof window.RepairCart.toggleItem === "function") {
+        window.RepairCart.toggleItem(this);
+      }
+    };
+
+    container.appendChild(btn);
+    parent.appendChild(container);
+
+    priceEl.dataset.cprCalcApplied = "1";
+  }
 }
 
-
-
-//tested
-function calcRepair(partcost,labor){
-	var mult;
-	if(partcost > 0 && partcost <= 9.99){
-		mult = 5;
-	}else if(partcost >=10  &  partcost <= 24.99) {
-		mult = 2.5;
-	}else if(partcost >=25  &  partcost <= 49.99) {
-		mult =2.25;
-	}else if(partcost >=50  &  partcost <= 99.99) {
-		mult = 2.00;
-	}else if(partcost >=100 &  partcost <= 199.99){
-		mult = 1.5;
-	}else if(partcost >=200){
-		mult =1.25;
-	}
-        var price = (partcost * mult) + labor;
-        var rounded = Math.ceil(price / 10) * 10;
-	return Math.round(rounded) - .01;
+// expose globally
+if (typeof window !== "undefined") {
+  window.calcRepair = calcRepair;
+  window.getLaborSingle = getLaborSingle;
+  window.addPrices = addPrices;
 }
-
-module.exports = {
-  calcRepair,
-  getLaborSingle,
-  addPrices
-};

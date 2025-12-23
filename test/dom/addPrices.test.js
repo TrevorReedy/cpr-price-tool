@@ -5,6 +5,7 @@
 const { addPrices } = require('../../src/inject/helper');
 const { DEFAULT_CONFIG } = require('../../src/laborConfig');
 
+
 // helper: create N identical product cards
 function makeCatalog(count) {
   const html = [];

@@ -31,11 +31,12 @@
       "js": [
         "src/laborConfig.js",
         "src/deviceLinkConfig.js",
+        "src/repairCalc/repairCart.js",
         "src/inject/notes.js",
         "src/inject/helper.js",
         "src/inject/inject.js"
       ],
-      "css": ["src/inject/inject.css"],
+      "css": ["src/inject/inject.css", "src/repairCalc/repairCart.css"],
       "run_at": "document_idle"
     }
   ],

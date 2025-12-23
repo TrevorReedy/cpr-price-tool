@@ -1,165 +1,185 @@
+
 /**
- * @author Riley Brust <brust.developer@gmail.com>
- * @version 0.1.0
- * @description Chrome extension that displays repair cost in the websites.
- * @file inject.js
+ * inject.js - INJECTOR MODULE
+ * Handles: UI injection, settings loading, DOM observation
  */
+(() => {
+  "use strict";
 
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "sync" && changes.laborConfig) {
-    location.reload(); // reload the actual product page
-  }
-});
+  const CART_IDS = {
+    root: "repairCalc",
+    empty: "rcEmpty",
+    list: "rcList",
+    parts: "rcPartsTotal",
+    laborRow: "rcLaborRow",
+    labor: "rcLaborTotal",
+    grand: "rcGrandTotal",
+    clear: "rcClear",
+  };
 
+  // ---- CONFIG HANDLING ----
+  const DEFAULT_CONFIG = {
+    defaults: {
+      phone: 75,
+      tablet: 100,
+      switch: 100,
+      computer: 130,
+      console: 130,
+    },
+    advanced: {
+      iphoneChargePort: 100,
+      backHousing: 100,
+      soldering: 130,
+    },
+  };
 
-async function main() {
-  const url = document.URL;
-  const blacklist = ["tools", "brands/", "refurbishing", "accessories", "checkout"];
-  if (blacklist.some((word) => url.includes(word))) return;
+  async function loadLaborSettings() {
+    try {
+      const keys = ["rate", "laborRate", "baseLabor", "config", "laborConfig"];
+      let res = {};
 
-
-  const switch_device = ["switch"];
-  const tablets  = ["ipad", "surface", "galaxy-tab", "samsung/tab"];
-  const consoles = ["game-console", "sony", "xbox", "nintendo", "macbook", "imac"];
-  
-  const config = await loadConfig();
-  const defs = config.defaults;
-
-  // Base labor from config, not hardcoded
-  let baseLabor = defs.phone;
-
-  if (switch_device.some((word) => url.includes(word)))  baseLabor = defs.switch;
-  if (consoles.some((word)  => url.includes(word)) && !url.includes(switch_device)) baseLabor = defs.console; 
-  if (tablets.some((word) => url.includes(word)))  baseLabor = defs.switch;
-
-  // Initial pass
-  addPrices(baseLabor, config);
-
-  // Mutation observer for lazy-loaded products
-  const observer = new MutationObserver((mutations) => {
-    let shouldRun = false;
-
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes) {
-        if (!(node instanceof HTMLElement)) continue;
-        if (node.classList && node.classList.contains("price")) {
-          shouldRun = true;
-          break;
-        }
-        if (node.querySelector && node.querySelector(".price")) {
-          shouldRun = true;
-          break;
+      // Try chrome storage
+      if (typeof chrome !== "undefined" && chrome.storage) {
+        try {
+          res = await new Promise((resolve) => {
+            chrome.storage.local.get(keys, (result) => resolve(result || {}));
+          });
+          console.log("Loaded from storage:", res);
+        } catch (e) {
+          console.log("Could not load from chrome storage:", e);
         }
       }
-      if (shouldRun) break;
-    }
 
-    if (shouldRun) {
-      addPrices(baseLabor, config);
-    }
-  });
+      // Get rate (fallback only)
+      let rate = Number(res.rate) || Number(res.laborRate) || Number(res.baseLabor) || 0;
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-}
-
-
-function loadConfig() {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get(["laborConfig"], (result) => {
-      if (result && result.laborConfig) {
-        // Merge with defaults in case you add new fields later
-        const cfg = result.laborConfig;
-        const merged = {
-          defaults: { ...DEFAULT_CONFIG.defaults, ...(cfg.defaults || {}) },
-          advanced: { ...DEFAULT_CONFIG.advanced, ...(cfg.advanced || {}) },
-        };
-        resolve(merged);
+      // Get config (storage override), else source-of-truth
+      let config = res.config || res.laborConfig;
+      if (!config) {
+        console.log("No config in storage, using default config.");
+        config = DEFAULT_CONFIG;
       } else {
-        resolve(DEFAULT_CONFIG);
+        console.log("Using config from storage override:", config);
       }
-    });
-  });
-}
 
+      // Merge storage override ON TOP of default config
+      config = {
+        defaults: { ...DEFAULT_CONFIG.defaults, ...(config.defaults || {}) },
+        advanced: { ...DEFAULT_CONFIG.advanced, ...(config.advanced || {}) },
+      };
 
+      return { rate, config };
+    } catch (e) {
+      console.error("loadLaborSettings failed:", e);
+      return { rate: 0, config: DEFAULT_CONFIG };
+    }
+  }
 
-function addHTML(labor, part_item, url) {
-    // 🔹 1) Skip if this price is inside a summary/subtotal container
-    let el = part_item;
-    while (el && el !== document.body) {
-        // Look at class, id, and aria-label
-        const meta =
-            (el.className || '') + ' ' +
-            (el.id || '') + ' ' +
-            (el.getAttribute && el.getAttribute('aria-label') || '');
+  // ---- UI INJECTION ----
+  function injectCartHTML() {
+    if (document.getElementById(CART_IDS.root)) return;
 
-        const lower = meta.toLowerCase();
+    const aside = document.createElement("aside");
+    aside.id = CART_IDS.root;
+    aside.className = "repair-calc";
+    aside.innerHTML = `
+      <div class="rc-head">
+        <div class="rc-title">Repair Calculator</div>
+      </div>
 
-        if (lower.includes('summary') || lower.includes('subtotal') || lower.includes('product-details')) {
-            // Don't inject into order summary / cart subtotal / etc.
-            return;
-        }
+      <div id="${CART_IDS.empty}" class="rc-empty">No items yet.</div>
+      <ul id="${CART_IDS.list}" class="rc-list"></ul>
 
-        el = el.parentElement;
+      <div class="rc-totals">
+        <div class="rc-row">
+          <span>Parts</span>
+          <strong id="${CART_IDS.parts}">$0.00</strong>
+        </div>
+
+        <div class="rc-row" id="${CART_IDS.laborRow}" style="display:none;">
+          <span>Labor</span>
+          <strong id="${CART_IDS.labor}">$0.00</strong>
+        </div>
+
+        <div class="rc-row rc-grand">
+          <span>Total</span>
+          <strong id="${CART_IDS.grand}">$0.00</strong>
+        </div>
+      </div>
+
+      <div class="rc-actions">
+        <button id="${CART_IDS.clear}" type="button" class="rc-btn">Clear</button>
+      </div>
+    `;
+
+    document.body.appendChild(aside);
+    console.log("Cart HTML injected");
+  }
+
+  // ---- MAIN EXECUTION ----
+  function debounce(fn, ms) {
+    let t = null;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  let SETTINGS = { rate: 0, config: DEFAULT_CONFIG };
+  let RepairCart = null;
+
+  async function runPass() {
+    console.log("Running injection pass...");
+
+    // 1. Inject HTML
+    injectCartHTML();
+
+    // 2. Initialize RepairCart module if available
+    if (typeof window.RepairCartModule !== "undefined" && !RepairCart) {
+      RepairCart = window.RepairCartModule.init(CART_IDS.root);
+      window.RepairCart = RepairCart; // Expose globally for helper.js
+      console.log("RepairCart module initialized");
     }
 
-    // 🔹 2) Normal logic below
+    // 3. Run addPrices if available
+    if (typeof window.addPrices === "function") {
+      console.log("Running addPrices with settings:", SETTINGS);
+      window.addPrices(SETTINGS.rate, SETTINGS.config);
+      
+      // Update button states after prices are added
+      if (RepairCart && typeof RepairCart.updateAllButtonStates === "function") {
+        setTimeout(() => RepairCart.updateAllButtonStates(), 100);
+      }
+    }
+  }
 
-    const costText = part_item.textContent || '';
-    const cost = costText.replace('$', '');
-    const repair_price = calcRepair(Number(cost), labor);
+  async function init() {
+    console.log("Initializing injector...");
+    
+    // Load settings
+    SETTINGS = await loadLaborSettings();
+    window.__CPR_LABOR__ = SETTINGS;
+    
+    // Initial run
+    await runPass();
 
-    // Build a small table with Part Price, Labor, and Repair Price
-    const partPrice = Math.max(0, repair_price - Number(labor || 0));
+    // Set up observers for dynamic content
+    const runPassDebounced = debounce(runPass, 250);
 
-    const table = document.createElement('table');
-    table.className = 'repair-table';
-    table.style.fontFamily = 'Arial, sans-serif';
-    table.style.fontSize = '14px';
+    const obs = new MutationObserver(() => runPassDebounced());
+    obs.observe(document.documentElement, { childList: true, subtree: true });
+    
+    // Re-run on navigation
+    window.addEventListener("popstate", runPassDebounced);
+    window.addEventListener("hashchange", runPassDebounced);
+    
+    console.log("Injector initialized successfully");
+  }
 
-    const tbody = document.createElement('tbody');
-
-    const makeRow = (label, value, valueClass) => {
-        const tr = document.createElement('tr');
-        const tdLabel = document.createElement('td');
-        tdLabel.textContent = label;
-        tdLabel.className = 'repair-table-label';
-        const tdValue = document.createElement('td');
-        tdValue.textContent = value;
-        tdValue.className = valueClass || 'repair-table-value';
-        tr.appendChild(tdLabel);
-        tr.appendChild(tdValue);
-        return tr;
-    };
-
-    // (You had Part Price twice before – now just once)
-    tbody.appendChild(makeRow('Part Price:', '$' + partPrice.toFixed(2)));
-    tbody.appendChild(makeRow('Labor:', '$' + Number(labor).toFixed(2)));
-    tbody.appendChild(
-        makeRow('Repair Price:', '$' + Number(repair_price).toFixed(2), 'repair-table-repair')
-    );
-
-    table.appendChild(tbody);
-
-    const container = document.createElement('div');
-    container.className = 'repair-container';
-
-    // if (!url.includes('replacement-parts') && url.includes('cpr.parts')) {
-    //     const spacer = document.createElement('br');
-    //     container.appendChild(spacer);
-    // }
-
-    container.appendChild(table);
-
-    const parent = part_item.parentElement;
-    if (parent) parent.appendChild(container);
-}
-
-
-module.exports = { addHTML }
-
-
-main();
+  // Start when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    setTimeout(init, 100);
+  }
+})();

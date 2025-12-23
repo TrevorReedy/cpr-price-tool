@@ -1,3 +1,4 @@
+
 const DEFAULT_CONFIG = {
   defaults: {
     phone: 75,
@@ -13,4 +14,6 @@ const DEFAULT_CONFIG = {
   },
 };
 
-module.exports = {DEFAULT_CONFIG}
+if (typeof window !== "undefined") {
+  window.CPR_LABOR_DEFAULT_CONFIG = DEFAULT_CONFIG;
+}
