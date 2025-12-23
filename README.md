@@ -1,5 +1,7 @@
 # Mobile Sentrix Price Tool (Chrome Extension)
 
+***PSA TESTS HAVE BEEN UNIMPLEMENTED DUE TO THE BROWSER NOT ABLE TO RECOGNIZE THEM AND RUN***
+
 A developer-focused Chrome extension that injects:
 - A **repair price breakdown table** next to product prices
 - A floating **Repair Calculator cart**
