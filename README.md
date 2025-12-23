@@ -4,7 +4,6 @@ A developer-focused Chrome extension that injects:
 - A **repair price breakdown table** next to product prices
 - A floating **Repair Calculator cart**
 - Customizable labor values 
-- **Per-item “Include labor” toggles** (first item defaults ON, additional items default OFF)
 - Optional **Device Notes** textarea (auto-saves per device)
 
 Built for  that contain product price elements and are hosted on mobile sentrix.
