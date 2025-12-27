@@ -1,6 +1,3 @@
-
-
-````md
 # Mobile Sentrix Pricing Tool for CPR Stores  
 **By Trevor Reedy**
 
@@ -38,38 +35,38 @@ The first version of this application followed the classic approach: write a con
 ## V1 Injection Logic (Runs Once)
 
 ```js
-function main(){
+function main() {
   let url = document.URL;
 
-  const blacklist = ["tools","brands/","refurbishing","accessories","checkout"];
+  const blacklist = ["tools", "brands/", "refurbishing", "accessories", "checkout"];
   if (blacklist.some((word) => url.includes(word))) return;
 
-  const tablets = ["ipad","surface","galaxy-tab","samsung/tab"];
-  const consoles = ["game-console","sony","xbox","nintendo","macbook-parts"];
+  const tablets = ["ipad", "surface", "galaxy-tab", "samsung/tab"];
+  const consoles = ["game-console", "sony", "xbox", "nintendo", "macbook-parts"];
 
-  var labor = 75;
+  let labor = 75;
   if (tablets.some((word) => url.includes(word))) labor = 100;
-  if (consoles.some((word)=> url.includes(word))) labor = 130;
+  if (consoles.some((word) => url.includes(word))) labor = 130;
 
   addPrices(labor);
 }
 
 main();
-````
-
+```
 This logic executed exactly once. Any content loaded after initial execution was invisible to the extension.
 
----
-
-## V1 DOM Loop (One-Pass Injection)
-
+V1 DOM Loop (One-Pass Injection)
 ```js
-function addPrices(labor){
+function addPrices(labor) {
   const url = document.URL;
   let elements = [];
 
-  if (url.includes('sentrix') || url.includes('defenders') || url.includes('cpr')) {
-    elements = Array.from(document.getElementsByClassName('price'));
+  if (
+    url.includes("sentrix") ||
+    url.includes("defenders") ||
+    url.includes("cpr")
+  ) {
+    elements = Array.from(document.getElementsByClassName("price"));
   }
 
   for (const part_item of elements) {
@@ -82,19 +79,12 @@ function addPrices(labor){
   }
 }
 ```
-
 This approach fundamentally breaks in a SPA environment.
 
----
-
-## From One-Shot Injection to Deterministic Reinjection
-
+From One-Shot Injection to Deterministic Reinjection
 To make injection reliable, I refactored the extension to run deterministic reinjection passes. Instead of assuming a static DOM, the extension now reacts to navigation events and DOM mutations.
 
----
-
-## Debounced Reinjection Engine
-
+Debounced Reinjection Engine
 In a Single Page Application, DOM mutations and navigation events often occur in rapid bursts rather than as isolated actions. Without safeguards, this would cause the extension’s injection logic to run repeatedly for the same logical event—leading to unnecessary CPU usage, layout thrashing, and degraded browser performance.
 
 To address this, I wrapped the core injection pass in a debounced function. Debouncing ensures that no matter how many times an event fires in a short window, the injection logic only executes once after changes have “settled.”
@@ -118,47 +108,42 @@ obs.observe(document.documentElement, { childList: true, subtree: true });
 window.addEventListener("popstate", runPassDebounced);
 window.addEventListener("hashchange", runPassDebounced);
 ```
-
 This approach strikes a balance between responsiveness and efficiency. The extension remains reactive to navigation and content changes, but avoids overwhelming the browser with repeated, overlapping injection passes.
 
----
-
-## Guarded Incremental Injection
-
-Guarded incremental injection is the mechanism that allows the extension to scale with dynamic content rather than degrade as the page grows.
+Guarded Incremental Injection
+Guarded incremental injection allows the extension to scale with dynamic content rather than degrade as the page grows.
 
 Instead of reprocessing the entire DOM on every injection pass, the extension explicitly targets only elements that have not yet been handled.
 
-Each eligible price element is marked with a lightweight `data-*` attribute after injection. Subsequent passes query only for elements lacking this marker, guaranteeing that each product is processed exactly once.
+Each eligible price element is marked with a lightweight data-* attribute after injection. Subsequent passes query only for elements lacking this marker, guaranteeing that each product is processed exactly once.
 
 Key implications:
 
-* Performance becomes proportional to **newly loaded content**, not total page size
-* Injection becomes **idempotent** (safe to re-run)
-* Eliminates duplicate UI elements, incorrect totals, and inconsistent state
+Performance becomes proportional to newly loaded content
+
+Injection becomes idempotent
+
+Duplicate UI elements and inconsistent state are eliminated
 
 ```js
 const allPriceElements =
-  document.querySelectorAll('.price:not([data-cpr-calc-applied="1"])');
+  document.querySelectorAll(
+    '.price:not([data-cpr-calc-applied="1"])'
+  );
 
 for (const priceEl of allPriceElements) {
   // inject pricing UI
   priceEl.dataset.cprCalcApplied = "1";
 }
 ```
-
 Each element is injected exactly once, ensuring performance scales with new content rather than total page size.
 
-Together with debouncing, guarded incremental injection forms the backbone of the extension’s stability. The system can respond aggressively to SPA changes while remaining predictable, efficient, and safe under heavy usage.
+Together with debouncing, guarded incremental injection forms the backbone of the extension’s stability.
 
----
+Decoupling Pricing Logic with chrome.storage.sync
+Labor defaults were originally hardcoded, creating a deployment bottleneck. I replaced this with a declarative configuration model backed by chrome.storage.sync.
 
-## Decoupling Pricing Logic with `chrome.storage.sync`
-
-Labor defaults were originally hardcoded, creating a deployment bottleneck. I replaced this with a declarative configuration model backed by `chrome.storage.sync`.
-
-### Loading and Merging Configuration
-
+Loading and Merging Configuration
 ```js
 chrome.storage.sync.get(["laborConfig"], (result) => {
   const cfg = result.laborConfig || {};
@@ -168,29 +153,21 @@ chrome.storage.sync.get(["laborConfig"], (result) => {
   };
 });
 ```
+This allows pricing adjustments without redeploying code, while ensuring safe defaults always exist.
 
-This allowed managers to adjust pricing without touching source code, while ensuring safe defaults always exist.
-
----
-
-## Externalized Knowledge: Persistent Device Notes
-
-To capture repair nuances, I added per-device notes persisted via `chrome.storage.sync`.
+Externalized Knowledge: Persistent Device Notes
+To capture repair nuances, I added per-device notes persisted via chrome.storage.sync.
 
 ```js
 const STORAGE_KEY = "deviceNotes";
 
-chrome.storage.sync.get([STORAGE_KEY], res => {
+chrome.storage.sync.get([STORAGE_KEY], (res) => {
   textarea.value = res?.[STORAGE_KEY]?.[key] || "";
 });
 
 chrome.storage.sync.set({ [STORAGE_KEY]: notes });
 ```
-
----
-
-## Conclusion: From Hacks to a Stable System
-
+Conclusion: From Hacks to a Stable System
 What began as a quick DOM hack evolved into a stable, configurable, and resilient pricing system. This project forced me to confront real-world constraints: SPAs, performance, state management, and human trust in automation.
 
 The result is a system I’m proud of—one that behaves deterministically, scales with the application it lives in, and can evolve without constant redeployment.
