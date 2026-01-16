@@ -1,16 +1,16 @@
 
 const DEFAULT_CONFIG = {
   defaults: {
-    phone: 75,
-    tablet: 100,
-    switch: 100,
-    computer: 130,
-    console: 130,
+    phone: 0,
+    tablet: 0,
+    switch: 0,
+    computer: 0,
+    console: 0,
   },
   advanced: {
-    iphoneChargePort: 100,
-    backHousing: 100,
-    soldering: 130,
+    iphoneChargePort: 0,
+    backHousing: 0,
+    soldering: 0,
   },
 };
 

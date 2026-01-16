@@ -160,12 +160,16 @@ function addPrices(rate, config) {
 
   for (const priceEl of allPriceElements) {
     // avoid cart/checkout areas
+    
     if (
+        priceEl.closest(".block-content.showcart-1.display_cart") ||
       priceEl.closest("#np-cart") ||
       priceEl.closest(".np-cart") ||
       priceEl.closest(".cart") ||
       priceEl.closest(".minicart") ||
-      priceEl.closest(".checkout")
+      priceEl.closest(".checkout") ||
+      priceEl.closest("mini-products-list")
+  
     ) {
       continue;
     }

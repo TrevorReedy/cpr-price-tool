@@ -14,6 +14,7 @@
     labor: "rcLaborTotal",
     grand: "rcGrandTotal",
     clear: "rcClear",
+    parent: "block-content showcart-1 display_cart"
   };
 
   // ---- CONFIG HANDLING ----

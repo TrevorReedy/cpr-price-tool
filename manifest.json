@@ -4,14 +4,13 @@
   "version": "0.1.0",
   "description": "Displays repair pricing and adds per-device notes on supported supplier sites.",
 
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage"],
 
   "host_permissions": [
     "*://*.cpr.parts/*",
     "*://*.mobiledefenders.com/*",
     "*://*.mobilesentrix.com/*",
     "*://www.ifixit.com/*"
-
   ],
 
   "action": {
@@ -39,18 +38,10 @@
       "run_at": "document_idle"
     }
   ],
-     "default_locale": "en",
-   "description": "Repair price display tool for Mobilesentrix.",
-   "differential_fingerprint": "1.7af7dc6be0943908e08ab6cd119534628dd7b9b21cc909425b5287a8bc6220b5",
-   "homepage_url": "http://fake.com",
-   "host_permissions": [
-  "*://*.mobiledefenders.com/*",
-  "*://*.mobilesentrix.com/*",
-  "*://*.cpr.parts/*"
-],
-   "icons": {
-      "128": "icons/tag-price128.png",
-      "16": "icons/tag-price16.png",
-      "48": "icons/tag-price48.png"
-   }
+
+  "icons": {
+    "16": "icons/tag-price16.png",
+    "48": "icons/tag-price48.png",
+    "128": "icons/tag-price128.png"
+  }
 }
